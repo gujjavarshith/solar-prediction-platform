@@ -1,0 +1,29 @@
+// Prisma schema — defines the Prediction table in PostgreSQL.
+// Prisma generates a type-safe client from this file.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Prediction {
+  id                Int       @id @default(autoincrement())
+  jobId             String    @unique @map("job_id")
+  buildingId        Int       @map("building_id")
+  installedCapacity Float?    @map("installed_capacity")
+  pvNormalized      Float?    @map("pv_normalized")
+  status            String    @default("pending")
+  city              String?
+  weather           Json?
+  features          Json?
+  error             String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  completedAt       DateTime? @map("completed_at")
+
+  @@index([buildingId])
+  @@map("predictions")
+}
