@@ -14,10 +14,10 @@ const subscriber = new Redis(REDIS_URL, {
   retryStrategy: (times) => Math.min(times * 500, 5000),
 });
 
-redis.on("connect", () => console.log("✅ Redis connected"));
+redis.on("connect", () => console.log("Redis connected"));
 redis.on("error", (err) => console.error("Redis error:", err.message));
 
-subscriber.on("connect", () => console.log("✅ Redis subscriber connected"));
+subscriber.on("connect", () => console.log("Redis subscriber connected"));
 
 async function getCached(key) {
   try {

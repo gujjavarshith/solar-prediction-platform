@@ -17,10 +17,10 @@ async function connectProducer() {
     try {
       await producer.connect();
       isConnected = true;
-      console.log("✅ Kafka producer connected");
+      console.log("Kafka producer connected");
       return;
     } catch (err) {
-      console.log(`⏳ Kafka not ready (attempt ${i + 1}/30)...`);
+      console.log(`Kafka not ready (attempt ${i + 1}/30)...`);
       await new Promise((r) => setTimeout(r, 3000));
     }
   }
