@@ -12,7 +12,7 @@ const { connectProducer } = require("./services/kafka");
 const { subscriber } = require("./services/redis");
 const { registerJob, notifyClient, removeSocket } = require("./services/socketManager");
 const { buildFeatures } = require("./services/featureBuilder");
-const { geocodeCity, fetchWeather } = require("./services/weather");
+const { geocodeCity, fetchWeather, fetchHourlyWeather } = require("./services/weather");
 const prisma = require("./services/prisma");
 const { publishJob } = require("./services/kafka");
 const { v4: uuidv4 } = require("uuid");
@@ -42,12 +42,12 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-  console.log(`🔌 Client connected: ${socket.id}`);
+  console.log(`Client connected: ${socket.id}`);
 
   // Handle prediction request via WebSocket
   socket.on("predict", async (data) => {
     try {
-      const { city, building_id, installed_capacity } = data;
+      const { city, building_id, installed_capacity, datetime } = data;
 
       // Validate
       if (!city || building_id == null || !installed_capacity) {
@@ -55,11 +55,29 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // 1. Geocode & fetch weather
+      // 1. Geocode
       const location = await geocodeCity(city);
-      const weather = await fetchWeather(location.latitude, location.longitude);
 
-      // 2. Auto-fetch lags
+      // 2. Fetch weather — hourly forecast if datetime provided, else current
+      let weather;
+      let requestedDatetime = null;
+
+      if (datetime) {
+        const dt = new Date(datetime);
+        if (isNaN(dt.getTime())) {
+          socket.emit("error", { message: "Invalid datetime format. Use ISO 8601." });
+          return;
+        }
+        requestedDatetime = dt.toISOString();
+        const dateStr = dt.toISOString().split("T")[0];
+        const hour = dt.getHours();
+        weather = await fetchHourlyWeather(location.latitude, location.longitude, dateStr, hour);
+        console.log(`Fetched hourly forecast for ${dateStr} hour ${hour}`);
+      } else {
+        weather = await fetchWeather(location.latitude, location.longitude);
+      }
+
+      // 3. Auto-fetch lags
       const lastPredictions = await prisma.prediction.findMany({
         where: { buildingId: building_id, status: "completed" },
         orderBy: { createdAt: "desc" },
@@ -73,15 +91,16 @@ io.on("connection", (socket) => {
           : 0,
       };
 
-      // 3. Build features
+      // 4. Build features (pass datetime so time features match)
       const features = buildFeatures({
         weather,
         buildingId: building_id,
         installedCapacity: installed_capacity,
+        datetime: requestedDatetime,
         lags,
       });
 
-      // 4. Create pending row
+      // 5. Create pending row
       const jobId = uuidv4();
       await prisma.prediction.create({
         data: {
@@ -95,21 +114,22 @@ io.on("connection", (socket) => {
         },
       });
 
-      // 5. Register this socket to receive the result
+      // 6. Register this socket to receive the result
       registerJob(jobId, socket);
 
-      // 6. Publish to Kafka
+      // 7. Publish to Kafka
       await publishJob(KAFKA_TOPIC, {
         job_id: jobId,
         city: `${location.name}, ${location.country}`,
         features,
       });
 
-      // 7. Acknowledge submission
+      // 8. Acknowledge submission
       socket.emit("job_created", {
         job_id: jobId,
         status: "pending",
         location: { name: location.name, country: location.country },
+        requested_datetime: requestedDatetime || "now",
         weather: {
           temperature: weather.temperature,
           humidity: weather.humidity,
@@ -126,7 +146,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     removeSocket(socket.id);
-    console.log(`🔌 Client disconnected: ${socket.id}`);
+    console.log(`Client disconnected: ${socket.id}`);
   });
 });
 

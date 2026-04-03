@@ -10,7 +10,7 @@ const router = express.Router();
 const prisma = require("../services/prisma");
 const { publishJob } = require("../services/kafka");
 const { getCached } = require("../services/redis");
-const { geocodeCity, fetchWeather } = require("../services/weather");
+const { geocodeCity, fetchWeather, fetchHourlyWeather } = require("../services/weather");
 const { buildFeatures } = require("../services/featureBuilder");
 const { registerJob } = require("../services/socketManager");
 const { validateLocationPredict, validateManualPredict } = require("../middleware/validate");
@@ -22,13 +22,30 @@ const KAFKA_TOPIC = process.env.KAFKA_TOPIC || "prediction-jobs";
 // Server fetches weather, builds features, publishes to Kafka.
 router.post("/predict/location", validateLocationPredict, async (req, res) => {
   try {
-    const { city, building_id, installed_capacity } = req.body;
+    const { city, building_id, installed_capacity, datetime } = req.body;
 
     // 1. Geocode city → lat/lon
     const location = await geocodeCity(city);
 
-    // 2. Fetch live weather from Open-Meteo
-    const weather = await fetchWeather(location.latitude, location.longitude);
+    // 2. Fetch weather from Open-Meteo
+    //    If datetime is provided, fetch hourly forecast for that date+hour;
+    //    otherwise fetch current weather.
+    let weather;
+    let requestedDatetime = null;
+
+    if (datetime) {
+      const dt = new Date(datetime);
+      if (isNaN(dt.getTime())) {
+        return res.status(400).json({ error: "Invalid datetime format. Use ISO 8601, e.g. '2026-04-03T14:00:00'" });
+      }
+      requestedDatetime = dt.toISOString();
+      const dateStr = dt.toISOString().split("T")[0]; // "2026-04-03"
+      const hour = dt.getHours();
+      weather = await fetchHourlyWeather(location.latitude, location.longitude, dateStr, hour);
+      console.log(`Fetched hourly forecast for ${dateStr} hour ${hour}`);
+    } else {
+      weather = await fetchWeather(location.latitude, location.longitude);
+    }
 
     // 3. Try to auto-fetch lag features from last predictions
     const lastPredictions = await prisma.prediction.findMany({
@@ -45,11 +62,12 @@ router.post("/predict/location", validateLocationPredict, async (req, res) => {
         : 0,
     };
 
-    // 4. Build 55-feature vector
+    // 4. Build 55-feature vector (pass datetime so time features match the request)
     const features = buildFeatures({
       weather,
       buildingId: building_id,
       installedCapacity: installed_capacity,
+      datetime: requestedDatetime,
       lags,
     });
 
@@ -81,8 +99,11 @@ router.post("/predict/location", validateLocationPredict, async (req, res) => {
     res.status(202).json({
       job_id: jobId,
       status: "pending",
-      message: "Prediction job submitted. Weather fetched automatically.",
+      message: datetime
+        ? `Prediction job submitted for ${requestedDatetime}. Hourly forecast used.`
+        : "Prediction job submitted. Current weather used.",
       location: { name: location.name, country: location.country },
+      requested_datetime: requestedDatetime || "now",
       weather_summary: {
         temperature: weather.temperature,
         humidity: weather.humidity,

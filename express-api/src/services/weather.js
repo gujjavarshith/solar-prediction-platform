@@ -67,4 +67,50 @@ async function fetchWeather(latitude, longitude) {
   };
 }
 
-module.exports = { geocodeCity, fetchWeather };
+/**
+ * Fetch hourly forecast weather for a specific date + hour from Open-Meteo.
+ * Used when the user provides a future datetime for prediction.
+ * @param {number} latitude
+ * @param {number} longitude
+ * @param {string} dateStr - ISO date string, e.g. "2026-04-03"
+ * @param {number} hour    - Hour of the day (0–23)
+ */
+async function fetchHourlyWeather(latitude, longitude, dateStr, hour) {
+  const params = [
+    "temperature_2m",
+    "relative_humidity_2m",
+    "dew_point_2m",
+    "pressure_msl",
+    "wind_speed_10m",
+    "wind_gusts_10m",
+    "wind_direction_10m",
+    "precipitation",
+    "weather_code",
+  ].join(",");
+
+  const url = `${BASE_WEATHER}?latitude=${latitude}&longitude=${longitude}&hourly=${params}&start_date=${dateStr}&end_date=${dateStr}`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (!data.hourly || !data.hourly.time || data.hourly.time.length === 0) {
+    throw new Error(`No hourly forecast data available for ${dateStr}`);
+  }
+
+  // Find the index matching the requested hour
+  const idx = Math.min(Math.max(hour, 0), data.hourly.time.length - 1);
+
+  return {
+    temperature: data.hourly.temperature_2m[idx],
+    dew_point: data.hourly.dew_point_2m[idx],
+    humidity: data.hourly.relative_humidity_2m[idx],
+    wind_speed: data.hourly.wind_speed_10m[idx],
+    wind_gust: data.hourly.wind_gusts_10m[idx],
+    pressure: data.hourly.pressure_msl[idx],
+    precip: data.hourly.precipitation[idx],
+    wind_direction_deg: data.hourly.wind_direction_10m[idx],
+    weather_code: data.hourly.weather_code[idx],
+    time: data.hourly.time[idx],
+  };
+}
+
+module.exports = { geocodeCity, fetchWeather, fetchHourlyWeather };
