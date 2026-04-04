@@ -1,7 +1,7 @@
 // Prediction routes:
-//   POST /predict/location  — auto-fetch weather by city name (primary)
-//   POST /predict           — manual weather input (advanced)
-//   GET  /predict/:id       — fetch prediction result by job ID
+//   POST /api/predict/location  — auto-fetch weather by city name (primary)
+//   POST /api/predict           — manual weather input (advanced)
+//   GET  /api/predict/:id       — fetch prediction result by job ID
 
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
@@ -20,7 +20,7 @@ const KAFKA_TOPIC = process.env.KAFKA_TOPIC || "prediction-jobs";
 // ── POST /predict/location ─────────────────────────────────────
 // User sends: { city, building_id, installed_capacity }
 // Server fetches weather, builds features, publishes to Kafka.
-router.post("/predict/location", validateLocationPredict, async (req, res) => {
+router.post("/api/predict/location", validateLocationPredict, async (req, res) => {
   try {
     const { city, building_id, installed_capacity, datetime } = req.body;
 
@@ -111,14 +111,14 @@ router.post("/predict/location", validateLocationPredict, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("POST /predict/location error:", err);
+    console.error("POST /api/predict/location error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
 // ── POST /predict ──────────────────────────────────────────────
 // Advanced: user provides all weather data manually.
-router.post("/predict", validateManualPredict, async (req, res) => {
+router.post("/api/predict", validateManualPredict, async (req, res) => {
   try {
     const {
       building_id, installed_capacity, datetime,
@@ -171,14 +171,14 @@ router.post("/predict", validateManualPredict, async (req, res) => {
       message: "Prediction job submitted with manual weather data.",
     });
   } catch (err) {
-    console.error("POST /predict error:", err);
+    console.error("POST /api/predict error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
 // ── GET /predict/:id ───────────────────────────────────────────
 // Fetch prediction result. Checks Redis cache first, falls back to DB.
-router.get("/predict/:id", async (req, res) => {
+router.get("/api/predict/:id", async (req, res) => {
   try {
     const jobId = req.params.id;
 
@@ -211,7 +211,7 @@ router.get("/predict/:id", async (req, res) => {
       source: "database",
     });
   } catch (err) {
-    console.error("GET /predict/:id error:", err);
+    console.error("GET /api/predict/:id error:", err);
     res.status(500).json({ error: err.message });
   }
 });

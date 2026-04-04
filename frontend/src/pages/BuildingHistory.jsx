@@ -14,7 +14,7 @@ export default function BuildingHistory() {
     setLoading(true);
     try {
       const res = await fetch(
-        `${API_BASE}/buildings/${buildingId}/history?page=${pageNum}&limit=15`
+        `${API_BASE}/api/buildings/${buildingId}/history?page=${pageNum}&limit=15`
       );
       const json = await res.json();
       setData(json);

@@ -1,11 +1,11 @@
 // Building history route:
-//   GET /buildings/:id/history — paginated list of past predictions for a building
+//   GET /api/buildings/:id/history — paginated list of past predictions for a building
 
 const express = require("express");
 const router = express.Router();
 const prisma = require("../services/prisma");
 
-router.get("/buildings/:id/history", async (req, res) => {
+router.get("/api/buildings/:id/history", async (req, res) => {
   try {
     const buildingId = parseInt(req.params.id, 10);
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -54,7 +54,7 @@ router.get("/buildings/:id/history", async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error("GET /buildings/:id/history error:", err);
+    console.error("GET /api/buildings/:id/history error:", err);
     res.status(500).json({ error: err.message });
   }
 });

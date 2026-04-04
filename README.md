@@ -22,30 +22,31 @@ A comprehensive dataset containing ~12 million hourly records from 2014 to 2022.
 
 **Location:** `data/processed/`
 
-| Split | File | Size | Records |
-|-------|------|------|---------|
+| Split    | File        | Size    | Records       |
+| -------- | ----------- | ------- | ------------- |
 | Training | `train.csv` | ~882 MB | ~3.04 Million |
-| Testing | `test.csv` | ~251 MB | ~873K |
+| Testing  | `test.csv`  | ~251 MB | ~873K         |
 
 - **Transformations applied:** Merged raw data, handled missing values (NaNs), and structured for comparative modeling.
 
 ## Model Performance 🚀
 
-A comparison of baseline and tree-based models evaluated directly on the test set (`~873K` records). 
+A comparison of baseline and tree-based models evaluated directly on the test set (`~873K` records).
 
 **Key Takeaways:**
+
 - 🏆 **Top Performer:** `XGBoost` achieves the highest accuracy ($R^2$ = **0.9778**) with very low error and quick training execution.
 - ⚡ **Fastest Training:** `Ridge Regression` trained in just **2.8 seconds**.
 - ⚠️ **Slowest Training:** `Random Forest` took the longest to train (**~19 minutes**) with slightly lower accuracy than XGBoost.
 
 ### Evaluation Metrics Overview
 
-| Model | $R^2$ Score ✨ | MAE 📉 | RMSE 📉 | MAPE (%) 📉 | Train Time (s) ⏱️ |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **XGBoost** | **0.9778** | **0.0128** | **0.0327** | **18.63%** | 49.2 |
-| **Random Forest** | 0.9755 | 0.0130 | 0.0343 | 19.71% | 1148.8 |
-| **SVR (RBF)** | 0.9697 | 0.0170 | 0.0382 | 22.54% | 1007.8 |
-| **Linear Regression** | 0.9465 | 0.0297 | 0.0508 | 42.24% | 17.6 |
-| **Ridge Regression** | 0.9465 | 0.0297 | 0.0508 | 42.24% | **2.8** |
+| Model                 | $R^2$ Score |    MAE     |    RMSE    |  MAPE (%)  | Train Time (s) |
+| :-------------------- | :---------: | :--------: | :--------: | :--------: | :------------: |
+| **XGBoost**           | **0.9778**  | **0.0128** | **0.0327** | **18.63%** |      49.2      |
+| **Random Forest**     |   0.9755    |   0.0130   |   0.0343   |   19.71%   |     1148.8     |
+| **SVR (RBF)**         |   0.9697    |   0.0170   |   0.0382   |   22.54%   |     1007.8     |
+| **Linear Regression** |   0.9465    |   0.0297   |   0.0508   |   42.24%   |      17.6      |
+| **Ridge Regression**  |   0.9465    |   0.0297   |   0.0508   |   42.24%   |    **2.8**     |
 
-> *Note: Higher $R^2$ indicates a better fit, while lower MAE, RMSE, and MAPE specify lower prediction error. Metrics are rounded for visual clarity.*
+> _Note: Higher $R^2$ indicates a better fit, while lower MAE, RMSE, and MAPE specify lower prediction error. Metrics are rounded for visual clarity._
