@@ -6,15 +6,13 @@ const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
 
-const predictRoutes = require("./routes/predict");
 const buildingRoutes = require("./routes/buildings");
-const { connectProducer } = require("./services/kafka");
+const { connectProducer, publishJob } = require("./services/kafka");
 const { subscriber } = require("./services/redis");
 const { registerJob, notifyClient, removeSocket } = require("./services/socketManager");
 const { buildFeatures } = require("./services/featureBuilder");
 const { geocodeCity, fetchWeather, fetchHourlyWeather } = require("./services/weather");
 const prisma = require("./services/prisma");
-const { publishJob } = require("./services/kafka");
 const { v4: uuidv4 } = require("uuid");
 
 const PORT = process.env.PORT || 3000;
@@ -33,7 +31,6 @@ app.get("/health", (req, res) => {
 });
 
 // Mount REST routes
-app.use("/", predictRoutes);
 app.use("/", buildingRoutes);
 
 // ── Socket.io setup ────────────────────────────────────────────
