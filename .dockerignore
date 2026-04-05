@@ -1,0 +1,12 @@
+data/
+notebooks/
+results/
+.git/
+.gitignore
+*.zip
+node_modules/
+__pycache__/
+*.pyc
+.env
+README.md
+LICENSE
